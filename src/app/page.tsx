@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Hero from "@/components/Hero";
+import ContractAddress from "@/components/ContractAddress";
 import Gallery from "@/components/Gallery";
 import UploadZone from "@/components/UploadZone";
 import ResultView from "@/components/ResultView";
@@ -56,6 +57,8 @@ export default function Home() {
   return (
     <main className="min-h-screen">
       <Hero />
+
+      <ContractAddress />
 
       {/* Upload / Result Section */}
       <section id="upload" className="max-w-4xl mx-auto px-4 py-16">
