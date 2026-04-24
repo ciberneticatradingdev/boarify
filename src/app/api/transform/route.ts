@@ -1,28 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI, { toFile } from "openai";
-import fs from "fs";
-import path from "path";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-// Load reference boar images
-function getReferenceBuffers(): { buffer: Buffer; name: string }[] {
-  const samplesDir = path.join(process.cwd(), "public", "samples");
-  try {
-    return fs
-      .readdirSync(samplesDir)
-      .filter((f) => /\.(png|jpg|jpeg|webp)$/i.test(f))
-      .sort()
-      .map((f) => ({
-        buffer: fs.readFileSync(path.join(samplesDir, f)),
-        name: f,
-      }));
-  } catch {
-    return [];
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,41 +42,28 @@ export async function POST(request: NextRequest) {
     const bytes = await imageFile.arrayBuffer();
     const uploadBuffer = Buffer.from(bytes);
 
-    // Get reference images
-    const refs = getReferenceBuffers();
-
-    // Build uploadable files array
-    const uploadableFiles = [];
-
-    // User's photo first
+    // Only the user's photo — no reference images
     const userFile = await toFile(uploadBuffer, "user_photo.png", {
       type: imageFile.type,
     });
-    uploadableFiles.push(userFile);
 
-    // Add reference boar images (up to 4)
-    for (const ref of refs.slice(0, 4)) {
-      const refFile = await toFile(ref.buffer, ref.name, {
-        type: ref.name.endsWith(".png") ? "image/png" : "image/jpeg",
-      });
-      uploadableFiles.push(refFile);
-    }
+    const prompt = `Edit this image to create a "boarified" version. This is a meme-style transformation where the subject gets turned into a boar/pig hybrid creature. 
 
-    const prompt = `I have provided multiple images. The FIRST image is a photo of a person that needs to be transformed. The OTHER images are reference examples of the "boarified" style I want.
-
-Looking at the reference examples, you can see the style: humans morphed into boar/pig hybrid creatures - human features blended with pig/boar features like snouts, tusks, pig noses, and boar-like faces. Some show a human face on a pig/boar body, others show a pig/boar face with human-like expressions.
-
-Now take the FIRST image (the person's photo) and BOARIFY them in this same style:
-- Transform their face into a boar/pig hybrid - add a pig snout, tusks, boar-like features
-- Keep elements of their original appearance recognizable (hair style, clothing, accessories, background)
-- Make it look like a funny, meme-worthy human-boar hybrid
-- The result should be humorous and shareable
-- Photorealistic rendering with the absurd boar transformation
-- Keep the same general pose and composition as the original photo`;
+CRITICAL RULES:
+- Keep the EXACT same composition, pose, framing, and background from the original image
+- Keep recognizable elements: hair style, clothing, accessories, setting
+- Replace/blend facial features with boar/pig features: add a pig snout, small tusks, pig ears, wider nose
+- The body can become more stocky/boar-like but should maintain the original pose
+- If it's a person, their face should morph into a pig/boar face while keeping some human features recognizable
+- If it's a character or meme, transform it into a boar/pig version of that same character/meme
+- Style: photorealistic CGI rendering, like a high-quality 3D render
+- The result should be funny and meme-worthy
+- DO NOT change the background or setting significantly
+- DO NOT create a completely new image - this must be clearly a transformation of the input`;
 
     const response = await openai.images.edit({
       model: "gpt-image-2",
-      image: uploadableFiles,
+      image: userFile,
       prompt,
       size: "1024x1024",
       quality: "high",
