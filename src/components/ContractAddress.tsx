@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "coming soon...";
 
 export default function ContractAddress() {
   const [copied, setCopied] = useState(false);
@@ -40,7 +40,11 @@ export default function ContractAddress() {
               <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1">
                 Contract Address
               </p>
-              <p className="text-sm md:text-base font-mono text-[var(--boar-accent)] truncate">
+              <p className={`text-sm md:text-base font-mono truncate ${
+                CONTRACT_ADDRESS === "coming soon..."
+                  ? "text-gray-500 italic"
+                  : "text-[var(--boar-accent)]"
+              }`}>
                 {CONTRACT_ADDRESS}
               </p>
             </div>
