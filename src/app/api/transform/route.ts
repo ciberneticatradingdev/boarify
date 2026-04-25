@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI, { toFile } from "openai";
+import sharp from "sharp";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -38,13 +39,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert uploaded file to buffer
+    // Convert uploaded file to buffer and downscale for speed
     const bytes = await imageFile.arrayBuffer();
-    const uploadBuffer = Buffer.from(bytes);
+    const rawBuffer = Buffer.from(bytes);
 
-    // Only the user's photo — no reference images
-    const userFile = await toFile(uploadBuffer, "user_photo.png", {
-      type: imageFile.type,
+    // Resize to max 1024px on longest side + convert to JPEG for smaller payload
+    const optimizedBuffer = await sharp(rawBuffer)
+      .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+
+    const userFile = await toFile(optimizedBuffer, "user_photo.jpg", {
+      type: "image/jpeg",
     });
 
     const prompt = `Edit this image to create a "boarified" version. This is a meme-style transformation where the subject gets turned into a boar/pig hybrid creature. 
@@ -66,7 +72,7 @@ CRITICAL RULES:
       image: userFile,
       prompt,
       size: "1024x1024",
-      quality: "high",
+      quality: "low",
     });
 
     const generatedImage = response.data?.[0];
